@@ -1,0 +1,236 @@
+#include <iostream>
+#include <fstream>
+#include <stdio.h>
+#include <vector>
+#include <string.h>
+#include <dirent.h>
+#include <unistd.h>
+
+#include <opencv2/opencv.hpp>
+#include "HistologicalEntities.h"
+#include <opencv/highgui.h>
+#include <opencv/cv.h>
+
+#include "opencv2/core/core_c.h"
+#include "opencv2/core/core.hpp"
+#include "opencv2/flann/miniflann.hpp"
+#include "opencv2/imgproc/imgproc_c.h"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/video/video.hpp"
+#include "opencv2/features2d/features2d.hpp"
+#include "opencv2/objdetect/objdetect.hpp"
+#include "opencv2/calib3d/calib3d.hpp"
+#include "opencv2/ml/ml.hpp"
+#include "opencv2/highgui/highgui_c.h"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/contrib/contrib.hpp"
+
+using namespace std;
+using namespace cv;
+using namespace nscale;
+
+int main (int argc, char **argv){
+	int *bbox = NULL;
+	int compcount;
+
+	int bufSize;
+
+	char *buffer;
+
+	/* Retrieve the dimension of the file from filename */
+
+	string fileName = "image1002.0004096.004096.dat";
+	//string fileName = getenv("mapred.input.file");
+	
+	int pos1 = fileName.find_last_of(".");
+	int pos2 = fileName.find_last_of(".", pos1 - 1);
+	int pos3 = fileName.find_last_of(".", pos2 - 1);
+	
+	int height = atoi(fileName.substr(pos3 + 1, pos2 - pos3 - 1).c_str());
+	int width = atoi(fileName.substr(pos2 + 1, pos1 - pos2 - 1).c_str());
+
+	// cout << height << " " << width << endl;
+
+	bufSize = height * width * 3;
+
+	
+	
+	buffer = (char *) calloc(bufSize + 2, sizeof(char));
+	cout << "read: " << fread(buffer, 1 , bufSize, stdin) << endl;
+
+
+	Mat foo = imread("exampleTile.tiff", 1);
+	
+	unsigned char *beg = (unsigned char *) foo.data;
+
+	/*
+	for(int x=0; x< 100; x++)
+	{
+		//cout << (int) *(buffer + x) << endl;
+	
+	}
+
+	/*
+	fstream Fout;
+	Fout.open("exampleBinary.txt", ios_base::out);
+
+	for(int x=0; x< bufSize; x++)
+	{
+	    if (x > 0 && x < 100) {
+		cout << (int) *(foo.data + x) << endl;
+	    }
+	    Fout << (unsigned char) *(beg + x);
+	}
+	//yout.write((unsigned char *) foo.data, 4096*4096*3);	
+	Fout.close();
+	*/	
+
+		
+	/*
+	Mat image = imread("exampleTile.tiff", 1);
+	for (int i = 0; i < image.cols; i++) {
+	    for (int j = 0; j < image.rows; j++) {
+		Vec3b intensity = image.at<Vec3b>(j, i);
+
+		*((unsigned char *) (buffer+j * image.cols*3 + i*3+0)) = intensity.val[0];
+		*((unsigned char *) (buffer+j *image.cols*3 + i*3+1)) = intensity.val[1];
+		*((unsigned char *) (buffer+j *image.cols*3 + i*3+2)) = intensity.val[2];
+
+//		cout << (int) blue << " " << (int) green << " " << (int) red << endl;
+	    }
+	}
+	*/
+
+	/*
+	for(int i = 0; i < foo.rows; i++)
+	{
+	    for(int j = 0; j < foo.cols; j += cn)
+	    {
+		Vec3b bgrPixel = foo.at<Vec3b>(i, j);
+
+		bgrPixel.val[0] = pixelPtr[i * foo.cols *cn + j * cn + 0]; // B
+		bgrPixel.val[1] = pixelPtr[i * foo.cols *cn + j * cn + 1]; // G
+		bgrPixel.val[2] = pixelPtr[i * foo.cols *cn + j * cn + 2]; // R
+
+		myout <<  bgrPixel.val[0]
+				<< bgrPixel.val[1]
+				<< bgrPixel.val[2];
+	    }
+	}*/
+	
+	Mat inputImg = Mat(Size(width, height), CV_8UC3, buffer, 0);
+	
+	namedWindow( "Display Image", CV_WINDOW_AUTOSIZE );
+	imshow( "Display Image", inputImg );
+	waitKey(0);
+	
+	return 0;
+	/*
+	height = 10;
+	width = 10;
+
+	for (int j =0; j < 10; j++) {
+		for (int i = 0; i < 10; i++) {
+			if (i < 5 && j < 5) {
+				*((unsigned char *) (buffer+i*10*3+j*3+0)) = 255;
+				*((unsigned char *) (buffer+i*10*3+j*3+1)) = 0;
+				*((unsigned char *) (buffer+i*10*3+j*3+2)) = 122;
+			} else {
+				*((unsigned char *) (buffer+i*10*3+j*3+0))  =  0;
+				*((unsigned char *) (buffer+i*10*3+j*3+1)) =  255;
+				*((unsigned char *) (buffer+i*10*3+j*3+2)) = 0;
+			} 
+
+		}
+	}
+
+	
+	cout << "[";
+	for (int j =0; j < 10; j++) {
+		for (int i = 0; i < 10; i++) {
+			cout << 
+			 (int) (*((unsigned char *) (buffer+i*10*3+j*3+0))) << "," <<
+			 (int) (*((unsigned char *) (buffer+i*10*3+j*3+1))) << ", " <<
+			 (int) (*((unsigned char *) (buffer+i*10*3+j*3+2))) << ", " ;
+
+		}
+		cout << ";" << endl;
+	}
+	cout << "]" << endl;
+
+	Mat inputImg = Mat(Size(width, height), CV_8UC3, buffer, Mat::AUTO_STEP);
+	cout << inputImg << endl;
+
+	cout << "[";
+	for (int j =0; j < 10; j++) {
+		for (int i = 0; i < 10; i++) {
+			cout << 
+			 (int) (*((unsigned char *) (buffer+i*10*3+j*3+0))) << "," <<
+			 (int) (*((unsigned char *) (buffer+i*10*3+j*3+1))) << ", " <<
+			 (int) (*((unsigned char *) (buffer+i*10*3+j*3+2))) << ", " ;
+
+		}
+		cout << ";" << endl;
+	}
+	cout << "]" << endl;
+	
+
+	cout << "cols rows: " << inputImg.cols << " " << inputImg.rows << endl;
+	*/
+	//cout << inputImg.dataend << " " << inputImg.datastart << " " << inputImg.channels() << " " << inputImg.cols << " " << inputImg.cols << endl;
+	//cout << "end-beg/ratio" << (inputImg.dataend-inputImg.datastart) / (inputImg.cols*inputImg.rows*inputImg.channels()) << endl;
+	
+	Mat out;
+	nscale::HistologicalEntities::segmentNuclei(inputImg, out, compcount, bbox);
+
+	//vector<int> compression_params;
+	//compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+	//compression_params.push_back(9);
+
+	//string out = "outputFile.png";
+	//imwrite("outputFile.jpg", foo);
+	//imwrite(out, output);
+
+	/*
+	namedWindow( "Display Image", CV_WINDOW_AUTOSIZE );
+	imshow( "Display Image", out );
+	waitKey(0);
+	*/
+	//cout << "done computing" << endl;
+	//sleep(100);
+
+	cout << out.size() << endl;
+
+	if (out.data > 0) {
+		Mat temp = Mat::zeros(out.size() + Size(2,2), out.type());
+		copyMakeBorder(out, temp, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+
+		std::vector<std::vector<Point> > contours;
+		std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
+
+		// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
+		findContours(temp, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
+		//TODO: TEMP std::cout << "num contours = " << contours.size() << std::endl;
+
+		//string outputFileName = "examplemask.txt";
+
+		
+		int counter = 0;
+		if (contours.size() > 0) {
+			// iterate over all top level contours (all siblings, draw with own label color
+			for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
+				// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
+				cout << idx << ": ";
+				for (unsigned int ptc = 0; ptc < contours[idx].size(); ++ptc) {
+					cout << contours[idx][ptc].x << "," << contours[idx][ptc].y << "; ";
+				}
+				cout << endl;
+			}
+			++counter;
+		}
+		//fid.close();
+	}
+
+
+	return 0;
+}

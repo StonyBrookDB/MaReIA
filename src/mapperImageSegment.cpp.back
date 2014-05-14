@@ -1,0 +1,92 @@
+#include <iostream>
+#include <fstream>
+#include <stdio.h>
+#include <vector>
+#include <string.h>
+#include <dirent.h>
+#include <unistd.h>
+
+#include <opencv2/opencv.hpp>
+#include "HistologicalEntities.h"
+
+using namespace std;
+using namespace cv;
+
+int main (int argc, char **argv){
+	int *bbox = NULL;
+	int compcount;
+
+	int bufSize = 200 * 200 * 3;
+
+	char *buffer;
+	char *mask;
+
+	buffer = new char[bufSize];
+	mask = new char[bufSize];
+
+	string output = "tmpFile.txt";
+
+	string fileName = getenv("mapred.input.file");
+
+/*
+	std::ifstream file(argv[1]);
+	std::vector<char> data;
+
+	file >> std::noskipws;
+	std::copy(std::istream_iterator<char>(file), std::istream_iterator<char>(), std::back_inserter(data));
+*/
+	//nscale::HistologicalEntities::segmentNuclei(m, std::string(mask), compcount, bbox);
+	
+	//image = imread( argv[1], 1 );
+
+	unsigned char matrix[200 * 200 * 3];
+
+	for (int i = 0; i < 200; i ++) {
+		for (int j = 0; j < 200; j++) {
+			matrix[200 * 3 * i + 3 * j + 0] = (unsigned char) 0;
+			matrix[200 * 3 * i + 3 * j + 1] = (unsigned char) 255;
+			matrix[200 * 3 * i + 3 * j + 2] = (unsigned char) 255;
+
+			/*
+			for (int k = 0; k < 3; k++) {
+				int randX = ((int) (rand() % 255));
+				matrix[200 * 3 * i + 3 * j + k] = (unsigned char) randX ; 
+				cout << randX << " ";
+			}
+			*/
+		}
+		//cout << endl;
+	}
+
+	/*
+	ofstream myout;
+	myout.open("tmpOutfile");
+
+	for (int i = 0; i < 200; i ++) {
+		for (int j = 0; j < 200; j++) {
+			myout <<  matrix[200 * 3 * i + 3 * j + 0]
+				<< matrix[200 * 3 * i + 3 * j + 1]
+				<< matrix[200 * 3 * i + 3 * j + 2];
+		}
+	}
+
+	cv::Mat image = Mat(200, 200, CV_8UC3, matrix, 3); 
+	*/
+
+	Mat inputImg = imread("exampleTile.tiff", 1);
+	cout << "Dimension: " << inputImg.rows << " " << inputImg.cols << endl;
+
+	fread(buffer, 1 , bufSize, stdin);
+
+	Mat image2 = Mat(200, 200, CV_8UC3, buffer, 3);
+
+
+	namedWindow( "Display Image", CV_WINDOW_AUTOSIZE );
+	imshow( "Display Image", inputImg );
+
+	waitKey(0);
+
+	delete [] mask;
+	delete [] buffer;
+	return 0;
+}
