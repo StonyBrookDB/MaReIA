@@ -37,6 +37,12 @@ using namespace nscale;
 string TAB = "\t";
 string SEMI_COLON = ";";
 
+void wkt_output(stringstream inputstream) {
+   // for every object in inputstream
+   //     format to WKT 
+   //     output
+}
+
 int main (int argc, char **argv){
 	int *bbox = NULL;
 	int compcount;
@@ -141,6 +147,7 @@ int main (int argc, char **argv){
 
 		/* Output boundary fix 2 to std output */
 		processBoundaryFixing2(tmpOutStream,tileName, baseX, baseY);
+   
 	}
 
 
