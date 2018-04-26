@@ -1,0 +1,71 @@
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
+import javax.imageio.ImageIO;
+
+public class TileImage {
+
+	public static void main(String[] args) {
+		
+	}
+	
+	public BufferedImage generate_tile(
+			String input_type, String image_path, 
+			long tile_width, int tile_overlap, 
+			String output_path, String compression_type
+	) {
+		BufferedImage img = null;
+		try {
+            img = ImageIO.read(new File(image_path));
+        } catch (final IOException e) {
+            // handle errors here
+        }
+		long w = 4096;
+		long h = 4096;
+		long width = img.getWidth(), height = img.getHeight();
+		
+		int xdimension = (int)(width / w);
+		int ydimension = (int)(height / h);
+		if(width % w != 0) {
+			xdimension++;
+		}
+		if(height % h != 0) {
+			ydimension++;
+		}
+	
+		long sx, sy, rw, rh;
+		for(int i = 0; i < xdimension; i++) {
+			for(int j = 0; j < ydimension; j++) {
+				sx = i * w;
+				sy = j * h;
+				
+				sx = sx - 316;
+				sy = sy - 316;
+				if(sx < 0) {
+					rw = w + 316;
+					sx = 0;
+				} else {
+					rw = w + 2 * 316;
+				}
+				if(sy < 0) {
+					rh = h + 316;
+					sy = 0;
+				} else {
+					rh = h + 2 * 316;
+				}
+				if(rw + sx > width) {
+					rw = width - sx;
+				}
+				if(rh + sy > height) {
+					rh = height - sy;
+				}
+			}
+		}
+		return null;
+	}
+	
+	
+
+}
