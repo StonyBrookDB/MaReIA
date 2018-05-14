@@ -50,7 +50,26 @@ struct tileMetaData
 };
 
 
-//remove the isolated polygons in the buffer zone
+//Genereate raster data of a image tile
+Mat getRasterData(string fileName, tileMetaData &tileData)
+{
+	int width = tileData.width;
+	int height = tileData.height;
+
+	const char * c = fileName.c_str();
+	FILE * file = fopen(c, "rb");
+
+	//Allocate memory for buffer
+	int bufSize = height * width * NUM_CHANNELS;
+	char *buffer = new char[bufSize + 2];
+	int amtRead = fread(buffer, 1 , bufSize, file);
+
+	//Might have to change to if-else to handle different # of channels
+	return Mat(Size(width, height), CV_8UC3, buffer, 0); 
+}
+
+
+//Remove the isolated polygons in the buffer zone
 void rmBufPolygon(stringstream &formatedStream, tileMetaData &tileData, stringstream &cleanStream)
 {
 	int coreX = tileData.baseX + tileData.buffer;
@@ -91,132 +110,113 @@ void rmBufPolygon(stringstream &formatedStream, tileMetaData &tileData, stringst
 		//Last point is the same as the first point in a polygon
 		polygon.push_back(polygon[0]);
 
-
 		Rect mbb = boundingRect(polygon);
 
-		if ((mbb.x > coreX) && (mbb.x + mbb.width < coreX + coreWidth) && mbb.y > coreY && (mbb.y + mbb.height < coreY + coreHeight))
+		if ((mbb.x > coreX && mbb.x < coreX + coreWidth && mbb.y > coreY && mbb.y < coreY + coreHeight) ||
+			(mbb.x + mbb.width > coreX && mbb.x + mbb.width < coreX + coreWidth && mbb.y > coreY && mbb.y < coreY + coreHeight) ||
+			(mbb.x > coreX && mbb.x < coreX + coreWidth && mbb.y + mbb.height > coreY && mbb.y + mbb.height < coreY + coreHeight) ||
+			(mbb.x + mbb.width > coreX && mbb.x + mbb.width < coreX + coreWidth && mbb.y + mbb.height > coreY && mbb.y + mbb.height < coreY + coreHeight))
 		{
-			cleanStream << line << endl;
-		}
+			//Polygons that are entirely in the core zone
+			if ((mbb.x > coreX) && (mbb.x + mbb.width < coreX + coreWidth) && mbb.y > coreY && (mbb.y + mbb.height < coreY + coreHeight))
+			{
+				cleanStream << line << "\tnon-boundary"<< endl;
+			}
+			else //Polygons that are on boundary
+			{
+				cleanStream << line << "\ton-boundary"<< endl;
+			}
+		}			
 
 	} //end of while, one line is processed
 }
 
 
 
-void read_tile(vector<string> imgFiles, string segmentMethod, vector<tileMetaData> tileData, int normOption, string outputFormat) 
+void read_tile(Mat inputImg, string segmentMethod, tileMetaData tileData, int normOption, string outputFormat) 
 {
-	stringstream cleanStream; //stream withoutout polygons in buffer zone
-	stringstream finalStream; //stream of cleanStream of tiles
+	stringstream tmpInStream;
+	stringstream outStream;		
+	stringstream formatedStream;
+	stringstream cleanStream; //stream withoutout polygons entirely in the buffer zone
+	
+	string tileName = tileData.tileName;
+	int baseX = tileData.baseX;
+	int baseY = tileData.baseY;
+	int width = tileData.width;
+	int height = tileData.height;
 
-	for (int i = 0; i < imgFiles.size(); ++i)
+
+	cout << "Start Segmentation..." << endl;
+
+	Mat outImg; //Output from segmentation
+	int compcount;
+	int *bbox = NULL;	
+
+	if (segmentMethod.compare("watershed") == 0)
 	{
-		string tileName = tileData[i].tileName;
-		int baseX = tileData[i].baseX;
-		int baseY = tileData[i].baseY;
-		int width = tileData[i].width;
-		int height = tileData[i].height;
+		nscale::HistologicalEntities::segmentNuclei(inputImg, outImg, compcount, bbox);
 
-		string fileName = imgFiles[i]; 
-		const char * c = fileName.c_str();
-		FILE * file = fopen(c, "rb");
-
-		//Allocate memory for buffer
-		int bufSize = height * width * NUM_CHANNELS;
-		char *buffer = new char[bufSize + 2];
-		int amtRead = fread(buffer, 1 , bufSize, file);
-
-		//Might have to change to if-else to handle different # of channels
-		Mat inputImg = Mat(Size(width, height), CV_8UC3, buffer, 0); 
+		imwrite( "/home/cfeng/src/outputimage.jpg", outImg ); //Output a watershed mask image
+	}
 
 
-		cout << "Start Segmentation..." << endl;
+	cout << "Start Building Contours..." << endl;
 
-		Mat outImg; //Output from segmentation
-		int compcount;
-		int *bbox = NULL;	
+	if (outImg.data > 0) {
+		Mat temp = Mat::zeros(outImg.size() + Size(2,2), outImg.type());
+		copyMakeBorder(outImg, temp, 1, 1, 1, 1, BORDER_CONSTANT, 0);
 
-		if (segmentMethod.compare("watershed") == 0)
-		{
-			nscale::HistologicalEntities::segmentNuclei(inputImg, outImg, compcount, bbox);
+		std::vector<std::vector<Point> > contours;
+		std::vector<Vec4i> hierarchy;
 
-			imwrite( "/home/cfeng/src/outputimage.jpg", outImg ); //Output a mask image
+		findContours(temp, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
+		
+		int counter = 0;
+		if (contours.size() > 0) {
+			for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
+				tmpInStream << idx << SEMI_COLON;
+				formatedStream << tileName << "\t" << idx << "\t";
+				for (unsigned int ptc = 0; ptc < contours[idx].size(); ++ptc) {
+					tmpInStream << " " << baseX + contours[idx][ptc].x << "," << baseY + contours[idx][ptc].y;
+					formatedStream << " " << baseX + contours[idx][ptc].x << "," << baseY + contours[idx][ptc].y;
+				}
+				tmpInStream << endl;
+				formatedStream << endl;
+			}
+			++counter;
 		}
 
 
-		cout << "Start Building Contours..." << endl;
+		tmpInStream.clear(); //Clear the stream (reset eof and etc.)
+		
 
-		stringstream tmpInStream;
-		stringstream outStream;		
-		stringstream formatedStream;
+		if (normOption > 0 && outputFormat.compare("WKT") == 0)
+		{
+			cout << "Start Boundary Fix1..." << endl;
 
-		if (outImg.data > 0) {
-			Mat temp = Mat::zeros(outImg.size() + Size(2,2), outImg.type());
-			copyMakeBorder(outImg, temp, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+			formatedStream.clear();
+			formatedStream.str("");
+			processBoundaryFixing(tmpInStream, tileName, outStream, formatedStream); //Boundary fix 1
 
-			std::vector<std::vector<Point> > contours;
-			std::vector<Vec4i> hierarchy;
-
-			findContours(temp, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
-			
-			int counter = 0;
-			if (contours.size() > 0) {
-				for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
-					tmpInStream << idx << SEMI_COLON;
-					formatedStream << tileName << "\t" << idx << "\t";
-					for (unsigned int ptc = 0; ptc < contours[idx].size(); ++ptc) {
-						tmpInStream << " " << baseX + contours[idx][ptc].x << "," << baseY + contours[idx][ptc].y;
-						formatedStream << " " << baseX + contours[idx][ptc].x << "," << baseY + contours[idx][ptc].y;
-					}
-					tmpInStream << endl;
-					formatedStream << endl;
-				}
-				++counter;
-			}
-
-
-
-			tmpInStream.clear(); //Clear the stream (reset eof and etc.)
-			
-			/*
-			if (normOption == 0)
+			if (normOption > 1)
 			{
-				outStream << tmpInStream.rdbuf();
-			}
-			*/
-
-			if (normOption > 0 && outputFormat.compare("WKT") == 0)
-			{
-				std::cout << "Start Boundary Fix1..." << std::endl;
+				cout << "Start Boundary Fix2..." << endl;
 
 				formatedStream.clear();
 				formatedStream.str("");
-				processBoundaryFixing(tmpInStream, tileName, outStream, formatedStream); //Boundary fix 1
-
-				if (normOption > 1)
-				{
-					std::cout << "Start Boundary Fix2..." << std::endl;
-
-					formatedStream.clear();
-					formatedStream.str("");
-					processBoundaryFixing2(outStream, tileName, baseX, baseY, formatedStream); //Boundary fix 2
-				}
+				processBoundaryFixing2(outStream, tileName, baseX, baseY, formatedStream); //Boundary fix 2
 			}
-			
 		}
-
-
-		rmBufPolygon(formatedStream, tileData[i], cleanStream);
-
-
-		//cout << "outStreamsize: " << outStream.str().size() << endl;
-		finalStream << cleanStream.str();
-
+		
 	}
 
+
+	rmBufPolygon(formatedStream, tileData, cleanStream);
+
 	ofstream myFile("/home/cfeng/src/output.txt");
-	cout << "size " << finalStream.str().size() << endl;
-	myFile << finalStream.str();
+	//cout << "size " << finalStream.str().size() << endl;
+	myFile << cleanStream.str();
 	myFile.close();
 }
 
@@ -224,15 +224,13 @@ void read_tile(vector<string> imgFiles, string segmentMethod, vector<tileMetaDat
 
 int main (int argc, char **argv){
 
+	string images[3] = {"/home/cfeng/src/TCGA-12-0618-01Z-00-DX1.svs_28672_16384.pnm", "/home/cfeng/src/TCGA-12-0618-01Z-00-DX1.svs_28672_20480.pnm", "/home/cfeng/src/TCGA-12-0618-01Z-00-DX1.svs_28672_16384.pnm"};
+	
 	vector<string> imgFiles;
 	vector<tileMetaData> tileData;
 
-	int n = atoi(argv[1]); // n should be 1, 2 or 3 since we only have 3 sample tiles
-
-	string images[3] = {"/home/cfeng/src/TCGA-12-0618-01Z-00-DX1.svs_28672_16384.pnm", "TCGA-12-0618-01Z-00-DX1.svs_28672_20480.pnm", "/home/cfeng/src/TCGA-12-0618-01Z-00-DX1.svs_28672_16384.pnm"};
-
-	//Create meta data for each tile
-	for (int i = 0; i < n; ++i)
+	//Create meta data for each sample tile image
+	for (int i = 0; i < 3; ++i)
 	{
 		string fileName = images[i];
 
@@ -250,14 +248,19 @@ int main (int argc, char **argv){
 		newMetaData.height = 4096;
 		newMetaData.buffer = 512; //This buffer size is just for testing purpose
 
-		cout << "baseX is " << newMetaData.baseX << endl;
-		cout << "baseY is " << newMetaData.baseY << endl;
-
 		tileData.push_back(newMetaData);
 		imgFiles.push_back(images[i]);
 	}
 
-	read_tile(imgFiles, "watershed", tileData, 2, "WKT");
+	//Print the base coordinated of an image tile
+	cout << "baseX is " << tileData[0].baseX << endl;
+	cout << "baseY is " << tileData[0].baseY << endl;
+
+	//Generate the raster data of an image tile
+	Mat inputMat = getRasterData(imgFiles[0], tileData[0]);
+
+	//The map function
+	read_tile(inputMat, "watershed", tileData[0], 2, "WKT");
 
 	return 0;
 }
