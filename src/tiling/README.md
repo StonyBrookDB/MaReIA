@@ -8,6 +8,7 @@ The generate_tile function is located in the tileImage.c file under the name of 
 generate_tile(input_type, input_image_paths, output_path, tile_width, tile_overlap, parallelization_option)
 
 Since the program currently only supports input_type as the local disk, and parallielization_option is always multi-threading, the signature of the function is actually this:
+
 generate_tile(input_image_paths, output_path, tile_width, tile_overlap, thread_num)
 
 The function parameter details are as follows:
@@ -36,6 +37,7 @@ This is the number of threads you want to run. Default is 0, max is 5.
 
 To run the file, make sure you first compile the C file with the following command:
 gcc -I/usr/openslide -L/usr/local/lib -lopenslide -o tileimage tileImage.c
+
 Make sure the openslide library is present in your local disk, otherwise the link would not build
 
 After that, run the program using either: ./tileimage or ./tileimage ('input_path', 'output_path', tile_width, tile_overlap, thread_num)
