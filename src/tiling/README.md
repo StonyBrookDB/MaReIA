@@ -41,7 +41,8 @@ gcc -I/usr/openslide -L/usr/local/lib -lopenslide -o tileimage tileImage.c
 Make sure the openslide library is present in your local disk, otherwise the link would not build
 
 After that, run the program using either: ./tileimage or ./tileimage ('input_path', 'output_path', tile_width, tile_overlap, thread_num)
-And it generate the tiles into the output_path.
+
+And it will generate the tiles into the output_path.
 
 ## Acknowledgments
 
