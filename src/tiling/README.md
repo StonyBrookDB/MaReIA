@@ -1,5 +1,7 @@
 Tiles are extracted from whole slide images using a grid based overlapping partitioning scheme. Each data file consisting of single tile is supplied to a “map” function, where they are processed producing segmented boundaries.
 
+The generate_multi_images method is for a set of all images and is a wrapper that calls generate_tile for every image in the path(s).
+
 ## API Interface
 
 The generate_multi_images function is located in the tileImage.c file and the signature of the function is:
@@ -8,7 +10,7 @@ The function parameter details are as follows:
 
 ### input_type
 
-input_type is either Hadoop HDFS, Database (DB2/Postgres) or local disk.
+This is the type of the input. It is either Hadoop HDFS, Database (DB2/Postgres) or local disk.
 
 ### input_images_paths
 
@@ -33,8 +35,6 @@ This is the type of compression that is used. It can be either zlib or no compre
 ### parallelization_option
 
 This is the type of parallelization that is used to run the method. We can use either Spark, Hadoop, or multi-threading.
-
-The generate_multi_images method is for a set of all images and is a wrapper that calls generate_tile for every image in the path(s).
 
 ## Acknowledgments
 
