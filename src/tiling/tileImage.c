@@ -60,8 +60,6 @@ void *thread_func(void *arg)
 			sprintf(outDirPath,"%s/%s",tiledir,imageName);
 		} 
 
-		//printf("%s,%s\n",imagePath,outDirPath);
-
 		FILE *tilefp;	// ppm file pointer
 
 		long lSize = 0;
@@ -153,14 +151,12 @@ void *thread_func(void *arg)
 	pthread_mutex_lock(&thread_mtx);
 	threadNum--;
 	pthread_mutex_unlock(&thread_mtx);
-	printf("finished job!\n");
 	return NULL;
 }
 
 
 int main(int argc, char **args) {
 
-	printf("got here 2");
 	//PTHREAD_SCOPE_SYSTEM
 	pthread_attr_t attr = {0};
 	pthread_attr_init(&attr);
@@ -179,7 +175,6 @@ int main(int argc, char **args) {
 	struct dirent * ent = NULL;
 	DIR *dir = opendir(imagedir);
 
-	printf("got here");
 
 	while((ent = readdir(dir))!=NULL)
 	{
