@@ -4,17 +4,21 @@ The generate_multi_images method is for a set of all images and is a wrapper tha
 
 ## API Interface
 
-The generate_multi_images function is located in the tileImage.c file and the signature of the function is:
-generate_multi_images(input_type, input_image_paths, tile_width, tile_overlap, output_path, compression_type, parallelization_option)
+The generate_tile function is located in the tileImage.c file under the name of 'thread_func' and the signature of the function is:
+generate_tile(input_type, input_image_paths, output_path, tile_width, tile_overlap, parallelization_option)
+
+Since the program currently only supports input_type as the local disk, and parallielization_option is always multi-threading, the signature of the function is actually this:
+generate_tile(input_image_paths, output_path, tile_width, tile_overlap, thread_num)
+
 The function parameter details are as follows:
-
-### input_type
-
-This is the type of the input. It is either Hadoop HDFS, Database (DB2/Postgres) or local disk.
 
 ### input_images_paths
 
 This is the path locations of where the images are stored.
+
+### output_path
+
+This is the path to output the results to. 
 
 ### tile_width
 
@@ -24,17 +28,18 @@ This is the width of one square tile. It is set to default to 4096 if it is not 
 
 This is the buffer width. It is set to default to 5 if it is not passed as a parameter.
 
-### output_path
+### thread_num
 
-This is the path to output the results to. 
+This is the number of threads you want to run. Default is 0, max is 5.
 
-### compression_type
+### How to run the file
 
-This is the type of compression that is used. It can be either zlib or no compression.
+To run the file, make sure you first compile the C file with the following command:
+gcc -I/usr/openslide -L/usr/local/lib -lopenslide -o tileimage tileImage.c
+Make sure the openslide library is present in your local disk, otherwise the link would not build
 
-### parallelization_option
-
-This is the type of parallelization that is used to run the method. We can use either Spark, Hadoop, or multi-threading.
+After that, run the program using either: ./tileimage or ./tileimage ('input_path', 'output_path', tile_width, tile_overlap, thread_num)
+And it generate the tiles into the output_path.
 
 ## Acknowledgments
 
